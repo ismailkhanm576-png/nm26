@@ -1,28 +1,33 @@
 import React, { useState, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { StyledInput, StyledButton, StyledSelect } from './UI';
-import { SearchIcon, DownloadIcon, XIcon, RefreshCwIcon, ZoomInIcon, SidebarOpenIcon, SidebarCloseIcon, BarChartIcon, TrendingUpIcon, BellIcon, SettingsIcon, PlusIcon, UploadIcon, EditIcon, TrashIcon } from './Icons';
+import { SearchIcon, DownloadIcon, XIcon, SidebarOpenIcon, SidebarCloseIcon, BarChartIcon, TrendingUpIcon, BellIcon, SettingsIcon, RefreshCwIcon, ZoomInIcon, PlusCircleIcon, EditIcon, TrashIcon, UploadIcon } from './Icons';
 import { Pagination } from './Pagination';
 import { INNER_MONGOLIA_CITIES } from '../constants';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Bar, Cell, PieChart, Pie } from 'recharts';
 
-interface SummaryData {
-    month: string;
-    totalCost: number;
-}
-
-interface BusinessFinanceRecord {
+interface CloudVideoInstallRecord {
     id: string;
     month: string;
     city: string;
     cat1: string;
     cat2: string;
-    cat3: string;
     volume: number;
     unitPrice: number;
     totalCost: number;
 }
 
-interface DetailRecord {
+interface CloudVideoMaintenanceRecord {
+    id: string;
+    month: string;
+    city: string;
+    cat1: string;
+    cat2: string;
+    volume: number;
+    unitPrice: number;
+    totalCost: number;
+}
+
+interface CloudVideoInstallDetailRecord {
     id: string;
     ticketNo: string;
     subject: string;
@@ -31,7 +36,6 @@ interface DetailRecord {
     customerCode: string;
     cat1: string;
     cat2: string;
-    cat3: string;
     terminalModel: string;
     deviceSn: string;
     city: string;
@@ -40,26 +44,13 @@ interface DetailRecord {
     completionTime: string;
 }
 
-interface MaintenanceRecord {
-    id: string;
-    month: string;
-    city: string;
-    cat1: string;
-    cat2: string;
-    cat3: string;
-    volume: number;
-    unitPrice: number;
-    totalCost: number;
-}
-
-interface MaintenanceDetailRecord {
+interface CloudVideoMaintenanceDetailRecord {
     id: string;
     productInstanceId: string;
     customerName: string;
     customerCode: string;
     cat1: string;
     cat2: string;
-    cat3: string;
     terminalModel: string;
     deviceSn: string;
     macAddress: string;
@@ -67,76 +58,58 @@ interface MaintenanceDetailRecord {
     address: string;
 }
 
-const MOCK_MAINTENANCE_LIST: MaintenanceRecord[] = [
-    { id: 'm1', month: '2026-03', city: '呼和浩特市', cat1: '千里眼', cat2: '室内无线WIFI', cat3: '标准版', volume: 500, unitPrice: 10, totalCost: 5000 },
-    { id: 'm2', month: '2026-03', city: '包头市', cat1: '千里眼', cat2: '室内外有线', cat3: '专业版', volume: 300, unitPrice: 15, totalCost: 4500 },
+interface CloudVideoFaultTicketDetailRecord {
+    id: string;
+    ticketNo: string;
+    subject: string;
+    channel: '400热线' | '10086热线' | '政企综调平台' | '其他报障渠道';
+    faultReason: '客户侧原因' | '云视讯硬件原因' | '接入网络原因' | '其他原因';
+    customerCode: string;
+    customerName: string;
+    productInstanceId: string;
+    city: string;
+    currentStep: string;
+    handler: string;
+    status: string;
+    reportTime: string;
+    archiveTime: string;
+    duration: string;
+    month: string;
+}
+
+const MOCK_CV_INSTALL_DATA: CloudVideoInstallRecord[] = [
+    { id: '1', month: '2024-03', city: '呼和浩特', cat1: '云视讯', cat2: '云视讯硬件', volume: 150, unitPrice: 200, totalCost: 30000 },
+    { id: '2', month: '2024-03', city: '包头', cat1: '云视讯', cat2: '云视讯硬件', volume: 80, unitPrice: 200, totalCost: 16000 },
+    { id: '3', month: '2024-03', city: '鄂尔多斯', cat1: '云视讯', cat2: '云视讯硬件', volume: 120, unitPrice: 100, totalCost: 12000 },
+    { id: '4', month: '2024-02', city: '呼和浩特', cat1: '云视讯', cat2: '云视讯硬件', volume: 130, unitPrice: 200, totalCost: 26000 },
+    { id: '5', month: '2024-02', city: '赤峰', cat1: '云视讯', cat2: '云视讯软件', volume: 500, unitPrice: 50, totalCost: 25000 },
 ];
 
-const MOCK_MAINTENANCE_DETAILS: MaintenanceDetailRecord[] = [
-    {
-        id: 'md1',
-        productInstanceId: 'QLY-HHHT-001',
-        customerName: '呼和浩特市家家悦超市',
-        customerCode: 'CUST001',
-        cat1: '千里眼',
-        cat2: '室内无线WIFI',
-        cat3: '标准版',
-        terminalModel: 'IPC-V30-W',
-        deviceSn: 'SN20260301001',
-        macAddress: '00:1A:2B:3C:4D:5E',
-        city: '呼和浩特市',
-        address: '呼和浩特市赛罕区新华东街18号'
-    }
-];
-
-const MOCK_SUMMARY: SummaryData = {
-    month: '2026-03',
-    totalCost: 1258400.50
+const MOCK_CV_INSTALL_DETAILS: Record<string, CloudVideoInstallDetailRecord[]> = {
+    '1': [
+        { id: 'd1', ticketNo: 'CV-20240301-001', subject: '呼和浩特市政府云视讯终端装机', productInstanceId: 'PI-8839201', customerName: '呼和浩特市政府', customerCode: 'CUST-HHHT-001', cat1: '云视讯', cat2: '云视讯硬件', terminalModel: '华为TE40', deviceSn: 'SN-HW-TE40-001', city: '呼和浩特', address: '新华东街1号', type: '装机', completionTime: '2024-03-05 14:30:00' },
+        { id: 'd2', ticketNo: 'CV-20240302-002', subject: '内蒙古大学云视讯终端移机', productInstanceId: 'PI-8839202', customerName: '内蒙古大学', customerCode: 'CUST-NMDX-001', cat1: '云视讯', cat2: '云视讯硬件', terminalModel: '中兴T800', deviceSn: 'SN-ZTE-T800-002', city: '呼和浩特', address: '大学西路235号', type: '移机', completionTime: '2024-03-10 10:15:00' },
+    ]
 };
 
-const MOCK_LIST: BusinessFinanceRecord[] = [
-    { id: '1', month: '2026-03', city: '呼和浩特市', cat1: '千里眼', cat2: '室内无线WIFI', cat3: '标准版', volume: 120, unitPrice: 150, totalCost: 18000 },
-    { id: '2', month: '2026-03', city: '包头市', cat1: '千里眼', cat2: '室内外有线', cat3: '专业版', volume: 85, unitPrice: 280, totalCost: 23800 },
-    { id: '3', month: '2026-03', city: '鄂尔多斯市', cat1: '千里眼', cat2: '室内无线WIFI', cat3: '标准版', volume: 150, unitPrice: 150, totalCost: 22500 },
-    { id: '4', month: '2026-03', city: '赤峰市', cat1: '千里眼', cat2: '室内外有线', cat3: '企业版', volume: 60, unitPrice: 350, totalCost: 21000 },
-    { id: '5', month: '2026-03', city: '通辽市', cat1: '千里眼', cat2: '室内无线WIFI', cat3: '标准版', volume: 95, unitPrice: 150, totalCost: 14250 },
+const MOCK_CV_MAINTENANCE_DATA: CloudVideoMaintenanceRecord[] = [
+    { id: 'm1', month: '2024-03', city: '呼和浩特', cat1: '云视讯', cat2: '云视讯硬件', volume: 1200, unitPrice: 15, totalCost: 18000 },
+    { id: 'm2', month: '2024-03', city: '包头', cat1: '云视讯', cat2: '云视讯硬件', volume: 850, unitPrice: 15, totalCost: 12750 },
+    { id: 'm3', month: '2024-03', city: '鄂尔多斯', cat1: '云视讯', cat2: '云视讯硬件', volume: 1500, unitPrice: 12, totalCost: 18000 },
 ];
 
-const MOCK_DETAILS: DetailRecord[] = [
-    {
-        id: 'd1',
-        ticketNo: 'GZ202603010001',
-        subject: '呼和浩特某商超千里眼安装',
-        productInstanceId: 'QLY-HHHT-001',
-        customerName: '呼和浩特市家家悦超市',
-        customerCode: 'CUST001',
-        cat1: '千里眼',
-        cat2: '室内无线WIFI',
-        cat3: '标准版',
-        terminalModel: 'IPC-V30-W',
-        deviceSn: 'SN20260301001',
-        city: '呼和浩特市',
-        address: '呼和浩特市赛罕区新华东街18号',
-        type: '装机',
-        completionTime: '2026-03-01 14:30:00'
-    },
-    {
-        id: 'd2',
-        ticketNo: 'GZ202603050023',
-        subject: '包头某工厂千里眼移机',
-        productInstanceId: 'QLY-BT-056',
-        customerName: '包头钢铁（集团）有限责任公司',
-        customerCode: 'CUST045',
-        cat1: '千里眼',
-        cat2: '室内外有线',
-        cat3: '专业版',
-        terminalModel: 'IPC-P50-E',
-        deviceSn: 'SN20260305023',
-        city: '包头市',
-        address: '包头市昆都仑区钢铁大街',
-        type: '移机',
-        completionTime: '2026-03-05 10:15:00'
-    }
+const MOCK_CV_MAINTENANCE_DETAILS: Record<string, CloudVideoMaintenanceDetailRecord[]> = {
+    'm1': [
+        { id: 'md1', productInstanceId: 'PI-CV-HHHT-001', customerName: '呼和浩特市教育局', customerCode: 'CUST-EDU-001', cat1: '云视讯', cat2: '云视讯硬件', terminalModel: '华为TE30', deviceSn: 'SN-CV-001', macAddress: '00:11:22:33:44:55', city: '呼和浩特', address: '呼和浩特市赛罕区' },
+        { id: 'md2', productInstanceId: 'PI-CV-HHHT-002', customerName: '呼和浩特市公安局', customerCode: 'CUST-POL-002', cat1: '云视讯', cat2: '云视讯硬件', terminalModel: '华为TE40', deviceSn: 'SN-CV-002', macAddress: '00:11:22:33:44:66', city: '呼和浩特', address: '呼和浩特市新城区' },
+    ]
+};
+
+const MOCK_CV_FAULT_TICKET_DETAILS: CloudVideoFaultTicketDetailRecord[] = [
+    { id: 'cvft1', ticketNo: 'CVFT20240301001', subject: '终端无法开机', channel: '400热线', faultReason: '云视讯硬件原因', customerCode: 'CUST-CV-001', customerName: '内蒙古电力公司', productInstanceId: 'CV-PI-001', city: '呼和浩特', currentStep: '已归档', handler: '张工', status: '已解决', reportTime: '2024-03-01 09:00:00', archiveTime: '2024-03-01 11:00:00', duration: '2小时', month: '2024-03' },
+    { id: 'cvft2', ticketNo: 'CVFT20240302005', subject: '会议画面卡顿', channel: '10086热线', faultReason: '接入网络原因', customerCode: 'CUST-CV-045', customerName: '包钢集团', productInstanceId: 'CV-PI-056', city: '包头', currentStep: '处理中', handler: '李工', status: '处理中', reportTime: '2024-03-02 14:00:00', archiveTime: '', duration: '5小时', month: '2024-03' },
+    { id: 'cvft3', ticketNo: 'CVFT20240303012', subject: '无法加入会议', channel: '政企综调平台', faultReason: '客户侧原因', customerCode: 'CUST-CV-088', customerName: '鄂尔多斯市政府', productInstanceId: 'CV-PI-102', city: '鄂尔多斯', currentStep: '已归档', handler: '王工', status: '已解决', reportTime: '2024-03-03 10:30:00', archiveTime: '2024-03-03 11:30:00', duration: '1小时', month: '2024-03' },
+    { id: 'cvft4', ticketNo: 'CVFT20240304008', subject: '麦克风无声', channel: '其他报障渠道', faultReason: '其他原因', customerCode: 'CUST-CV-120', customerName: '赤峰市医院', productInstanceId: 'CV-PI-033', city: '赤峰', currentStep: '已归档', handler: '赵工', status: '已解决', reportTime: '2024-03-04 16:20:00', archiveTime: '2024-03-05 09:00:00', duration: '16小时', month: '2024-03' },
 ];
 
 const Th = ({ children, className = "", ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
@@ -151,257 +124,249 @@ const Td = ({ children, className = "", ...props }: React.TdHTMLAttributes<HTMLT
   </td>
 );
 
-// Sub-component for Installation/Removal Data Management
-const InstallRemoveDataView: React.FC = () => {
-    const [filters, setFilters] = useState({
-        month: '2026-03',
-        city: '',
-        cat1: '千里眼',
-        cat2: '',
-        cat3: ''
-    });
-
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<BusinessFinanceRecord | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [detailCurrentPage, setDetailCurrentPage] = useState(1);
-    const [detailPageSize, setDetailPageSize] = useState(10);
+const CloudVideoInstallRemoveView: React.FC = () => {
+    const [filters, setFilters] = useState({ month: '', city: '', cat1: '', cat2: '' });
+    const [pagination, setPagination] = useState({ currentPage: 1, pageSize: 10 });
+    const [selectedRecord, setSelectedRecord] = useState<CloudVideoInstallRecord | null>(null);
+    const [detailPagination, setDetailPagination] = useState({ currentPage: 1, pageSize: 10 });
 
     const filteredData = useMemo(() => {
-        return MOCK_LIST.filter(item => {
+        return MOCK_CV_INSTALL_DATA.filter(item => {
+            if (filters.month && item.month !== filters.month) return false;
             if (filters.city && item.city !== filters.city) return false;
-            if (filters.cat2 && item.cat2 !== filters.cat2) return false;
-            if (filters.cat3 && item.cat3 !== filters.cat3) return false;
+            if (filters.cat1 && item.cat1 !== filters.cat1) return false;
+            if (filters.cat2 && !item.cat2.includes(filters.cat2)) return false;
             return true;
         });
     }, [filters]);
 
+    const totalCost = useMemo(() => {
+        return filteredData.reduce((sum, item) => sum + item.totalCost, 0);
+    }, [filteredData]);
+
     const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * pageSize;
-        return filteredData.slice(start, start + pageSize);
-    }, [filteredData, currentPage, pageSize]);
+        const start = (pagination.currentPage - 1) * pagination.pageSize;
+        return filteredData.slice(start, start + pagination.pageSize);
+    }, [filteredData, pagination]);
 
     const paginatedDetails = useMemo(() => {
-        const start = (detailCurrentPage - 1) * detailPageSize;
-        return MOCK_DETAILS.slice(start, start + detailPageSize);
-    }, [detailCurrentPage, detailPageSize]);
+        if (!selectedRecord) return [];
+        const details = MOCK_CV_INSTALL_DETAILS[selectedRecord.id] || [];
+        const start = (detailPagination.currentPage - 1) * detailPagination.pageSize;
+        return details.slice(start, start + detailPagination.pageSize);
+    }, [selectedRecord, detailPagination]);
 
-    const handleDrillDown = (record: BusinessFinanceRecord) => {
+    const handleDrillDown = (record: CloudVideoInstallRecord) => {
         setSelectedRecord(record);
-        setDetailCurrentPage(1);
-        setIsDetailModalOpen(true);
+        setDetailPagination({ currentPage: 1, pageSize: 10 });
     };
 
     const handleExport = () => {
-        alert('正在导出业财数据...');
-    };
+        const headers = ['月份', '地市', '一级分类', '二级分类', '装移机量（路）', '单价（元）', '装移机费用（元）'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredData.map(item => [
+                item.month,
+                item.city,
+                item.cat1,
+                item.cat2,
+                item.volume,
+                item.unitPrice.toFixed(2),
+                item.totalCost
+            ].join(','))
+        ].join('\n');
 
-    const handleDetailExport = () => {
-        alert('正在导出下钻详情数据...');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `云视讯装移机数据_${new Date().getTime()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
-        <div className="relative flex flex-col h-full bg-transparent p-4 gap-4 overflow-hidden">
-            {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-4 bg-[#0c2242]/50 p-4 border border-blue-500/20 rounded-sm">
+        <div className="relative flex flex-col h-full p-4 animate-[fadeIn_0.3s_ease-out]">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-4 mb-4 bg-[#0c2242]/50 p-4 border border-blue-500/20 rounded-sm">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">月份:</span>
-                    <StyledInput 
-                        type="month" 
-                        className="w-40" 
-                        value={filters.month}
-                        onChange={(e) => setFilters({ ...filters, month: e.target.value })}
-                    />
+                    <span className="text-xs text-blue-300 whitespace-nowrap">月份:</span>
+                    <StyledInput type="month" value={filters.month} onChange={e => setFilters({ ...filters, month: e.target.value })} className="w-32" />
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">地市:</span>
-                    <StyledSelect 
-                        className="w-32"
-                        value={filters.city}
-                        onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                    >
+                    <span className="text-xs text-blue-300 whitespace-nowrap">地市:</span>
+                    <StyledSelect value={filters.city} onChange={e => setFilters({ ...filters, city: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        {INNER_MONGOLIA_CITIES.map(city => (
-                            <option key={city.code} value={city.name}>{city.name}</option>
-                        ))}
+                        {INNER_MONGOLIA_CITIES.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
                     </StyledSelect>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">一级分类:</span>
-                    <StyledSelect 
-                        className="w-32"
-                        value={filters.cat1}
-                        onChange={(e) => setFilters({ ...filters, cat1: e.target.value })}
-                    >
-                        <option value="千里眼">千里眼</option>
-                    </StyledSelect>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">二级分类:</span>
-                    <StyledSelect 
-                        className="w-40"
-                        value={filters.cat2}
-                        onChange={(e) => setFilters({ ...filters, cat2: e.target.value })}
-                    >
+                    <span className="text-xs text-blue-300 whitespace-nowrap">一级分类:</span>
+                    <StyledSelect value={filters.cat1} onChange={e => setFilters({ ...filters, cat1: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        <option value="室内无线WIFI">室内无线WIFI</option>
-                        <option value="室内外有线">室内外有线</option>
+                        <option value="云视讯">云视讯</option>
                     </StyledSelect>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">三级分类:</span>
-                    <StyledSelect 
-                        className="w-32"
-                        value={filters.cat3}
-                        onChange={(e) => setFilters({ ...filters, cat3: e.target.value })}
-                    >
+                    <span className="text-xs text-blue-300 whitespace-nowrap">二级分类:</span>
+                    <StyledSelect value={filters.cat2} onChange={e => setFilters({ ...filters, cat2: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        <option value="标准版">标准版</option>
-                        <option value="专业版">专业版</option>
-                        <option value="企业版">企业版</option>
+                        <option value="云视讯硬件">云视讯硬件</option>
+                        <option value="云视讯软件">云视讯软件</option>
                     </StyledSelect>
                 </div>
-                <StyledButton variant="toolbar" icon={<SearchIcon />}>查询</StyledButton>
-                <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ month: '2026-03', city: '', cat1: '千里眼', cat2: '', cat3: '' })}>重置</StyledButton>
+                <StyledButton onClick={() => setPagination({ ...pagination, currentPage: 1 })} icon={<SearchIcon />} variant="toolbar">查询</StyledButton>
+                {(filters.month || filters.city || filters.cat1 || filters.cat2) && (
+                    <StyledButton onClick={() => setFilters({ month: '', city: '', cat1: '', cat2: '' })} variant="secondary" icon={<RefreshCwIcon />}>重置</StyledButton>
+                )}
             </div>
 
-            {/* Summary Card */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Summary Metric */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-gradient-to-r from-blue-600/20 to-blue-900/20 border border-blue-500/30 p-4 rounded-sm flex flex-col justify-center">
                     <span className="text-xs text-blue-300 mb-1">月份</span>
-                    <span className="text-xl font-bold text-white">{filters.month || MOCK_SUMMARY.month}</span>
+                    <span className="text-xl font-bold text-white">{filters.month || '2024-03'}</span>
                 </div>
                 <div className="bg-gradient-to-r from-blue-600/20 to-blue-900/20 border border-blue-500/30 p-4 rounded-sm flex flex-col justify-center">
-                    <span className="text-xs text-blue-300 mb-1">本月全省千里眼应结总装移机工料费（元）</span>
-                    <span className="text-2xl font-bold text-neon-blue">¥ {MOCK_SUMMARY.totalCost.toLocaleString()}</span>
+                    <span className="text-xs text-blue-300 mb-1">本月全省云视讯应结总装移机工料费（元）</span>
+                    <span className="text-2xl font-bold text-neon-blue">¥ {totalCost.toLocaleString()}</span>
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="flex-1 overflow-hidden flex flex-col bg-[#0c2242]/30 border border-blue-500/20 rounded-sm">
-                <div className="overflow-auto flex-1 scrollbar-thin">
+            <div className="flex-1 overflow-hidden flex flex-col border border-blue-500/30 bg-[#0A2744]/50 relative">
+                <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-[#1e3a5f] z-10">
+                        <thead className="sticky top-0 z-10 bg-[#124979]/90 backdrop-blur-sm shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
                             <tr>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">地市</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">一级分类</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">二级分类</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">三级分类</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">装移机量（路）</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">单价（元）</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30">装移机费用（元）</th>
-                                <th className="p-3 text-xs font-semibold text-blue-100 border-b border-blue-500/30 text-center">操作</th>
+                                <Th className="text-blue-200">月份</Th>
+                                <Th className="text-blue-200">地市</Th>
+                                <Th className="text-blue-200">一级分类</Th>
+                                <Th className="text-blue-200">二级分类</Th>
+                                <Th className="text-blue-200 text-right">装移机量（路）</Th>
+                                <Th className="text-blue-200 text-right">单价（元）</Th>
+                                <Th className="text-blue-200 text-right">装移机费用（元）</Th>
+                                <Th className="text-blue-200 text-center">操作</Th>
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedData.map((record) => (
-                                <tr key={record.id} className="hover:bg-blue-500/10 transition-colors border-b border-blue-500/10">
-                                    <td className="p-3 text-xs text-white">{record.city}</td>
-                                    <td className="p-3 text-xs text-white">{record.cat1}</td>
-                                    <td className="p-3 text-xs text-white">{record.cat2}</td>
-                                    <td className="p-3 text-xs text-white">{record.cat3}</td>
-                                    <td className="p-3 text-xs text-white font-mono">{record.volume}</td>
-                                    <td className="p-3 text-xs text-white font-mono">{record.unitPrice}</td>
-                                    <td className="p-3 text-xs text-neon-blue font-bold font-mono">{record.totalCost.toLocaleString()}</td>
-                                    <td className="p-3 text-xs text-center">
+                            {paginatedData.length > 0 ? paginatedData.map((item, index) => (
+                                <tr key={item.id} className={`hover:bg-blue-500/10 transition-colors ${index % 2 === 0 ? 'bg-transparent' : 'bg-[#0A3458]/20'}`}>
+                                    <Td className="text-blue-100">{item.month}</Td>
+                                    <Td className="text-blue-100">{item.city}</Td>
+                                    <Td className="text-blue-100">{item.cat1}</Td>
+                                    <Td className="text-blue-100">{item.cat2}</Td>
+                                    <Td className="text-blue-100 text-right font-mono">{item.volume}</Td>
+                                    <Td className="text-blue-100 text-right font-mono">{item.unitPrice.toFixed(2)}</Td>
+                                    <Td className="text-neon-blue text-right font-mono font-bold">{item.totalCost.toLocaleString()}</Td>
+                                    <Td className="text-center">
                                         <button 
-                                            onClick={() => handleDrillDown(record)}
-                                            className="text-neon-blue hover:text-blue-300 transition-colors flex items-center justify-center gap-1 mx-auto"
+                                            className="text-blue-400 hover:text-neon-blue underline text-xs"
+                                            onClick={() => handleDrillDown(item)}
                                         >
-                                            <ZoomInIcon className="w-3 h-3" />
                                             下钻详情
                                         </button>
-                                    </td>
+                                    </Td>
                                 </tr>
-                            ))}
+                            )) : (
+                                <tr>
+                                    <Td colSpan={8} className="text-center text-gray-400 py-8">暂无数据</Td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
                 <div className="bg-[#1e293b]/50 h-[40px] shrink-0 border-t border-blue-500/20 flex items-center px-4 gap-4">
                     <StyledButton variant="toolbar" onClick={handleExport} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
                     <Pagination 
-                        currentPage={currentPage}
-                        pageSize={pageSize}
-                        totalItems={filteredData.length}
-                        onPageChange={setCurrentPage}
-                        onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
+                        currentPage={pagination.currentPage} 
+                        totalItems={filteredData.length} 
+                        pageSize={pagination.pageSize} 
+                        onPageChange={(page) => setPagination({ ...pagination, currentPage: page })} 
+                        onPageSizeChange={(s) => setPagination({ currentPage: 1, pageSize: s })}
                         className="py-0 w-full"
                     />
                 </div>
             </div>
 
             {/* Drill-down Modal */}
-            {isDetailModalOpen && (
+            {selectedRecord && (
                 <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-[#0b1730] border border-blue-500/40 w-full max-w-6xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(0,210,255,0.3)]">
                         <div className="flex justify-between items-center p-4 border-b border-blue-500/30 bg-[#0c2242]">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                业财数据详情 - {selectedRecord?.city}
+                                <BarChartIcon className="w-5 h-5 text-neon-blue" />
+                                装移机详情 - {selectedRecord.city} ({selectedRecord.month})
                             </h3>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                            <button onClick={() => setSelectedRecord(null)} className="text-gray-400 hover:text-white transition-colors">
                                 <XIcon className="w-6 h-6" />
                             </button>
                         </div>
+                        
                         <div className="flex-1 overflow-auto p-4 scrollbar-thin">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="sticky top-0 bg-[#1e3a5f] z-10">
+                            <table className="w-full text-left border-collapse min-w-[1200px]">
+                                <thead className="sticky top-0 z-10 bg-[#1e3a5f]">
                                     <tr>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">工单编号</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">工单主题</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">产品实例标识</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">客户名称</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">客户编号</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">一级分类</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">二级分类</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">三级分类</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">终端型号</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">设备序列号</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">地市</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">安装地址</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">类型</th>
-                                        <th className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">完成时间</th>
+                                        <Th className="text-blue-200">工单编号</Th>
+                                        <Th className="text-blue-200">工单主题</Th>
+                                        <Th className="text-blue-200">产品实例标识</Th>
+                                        <Th className="text-blue-200">客户名称</Th>
+                                        <Th className="text-blue-200">客户编号</Th>
+                                        <Th className="text-blue-200">一级分类</Th>
+                                        <Th className="text-blue-200">二级分类</Th>
+                                        <Th className="text-blue-200">终端型号</Th>
+                                        <Th className="text-blue-200">设备序列号</Th>
+                                        <Th className="text-blue-200">地市</Th>
+                                        <Th className="text-blue-200">安装地址</Th>
+                                        <Th className="text-blue-200">装移机类型</Th>
+                                        <Th className="text-blue-200">装移机完成时间</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedDetails.map((detail) => (
-                                        <tr key={detail.id} className="hover:bg-blue-500/10 border-b border-blue-500/10">
-                                            <td className="p-2 text-[10px] text-white font-mono whitespace-nowrap">{detail.ticketNo}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap" title={detail.subject}>{detail.subject}</td>
-                                            <td className="p-2 text-[10px] text-blue-300 font-mono whitespace-nowrap">{detail.productInstanceId}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.customerName}</td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.customerCode}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat1}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat2}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat3}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.terminalModel}</td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.deviceSn}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.city}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap" title={detail.address}>{detail.address}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">
-                                                <span className={`px-1 rounded ${detail.type === '装机' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {paginatedDetails.map((detail, idx) => (
+                                        <tr key={detail.id} className={`hover:bg-blue-500/10 transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-[#0A3458]/20'}`}>
+                                            <Td className="text-blue-100">{detail.ticketNo}</Td>
+                                            <Td className="text-blue-100 truncate max-w-[150px]" title={detail.subject}>{detail.subject}</Td>
+                                            <Td className="text-blue-100">{detail.productInstanceId}</Td>
+                                            <Td className="text-blue-100 truncate max-w-[150px]" title={detail.customerName}>{detail.customerName}</Td>
+                                            <Td className="text-blue-100">{detail.customerCode}</Td>
+                                            <Td className="text-blue-100">{detail.cat1}</Td>
+                                            <Td className="text-blue-100">{detail.cat2}</Td>
+                                            <Td className="text-blue-100">{detail.terminalModel}</Td>
+                                            <Td className="text-blue-100">{detail.deviceSn}</Td>
+                                            <Td className="text-blue-100">{detail.city}</Td>
+                                            <Td className="text-blue-100 truncate max-w-[150px]" title={detail.address}>{detail.address}</Td>
+                                            <Td className="text-blue-100">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] ${detail.type === '装机' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'}`}>
                                                     {detail.type}
                                                 </span>
-                                            </td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.completionTime}</td>
+                                            </Td>
+                                            <Td className="text-blue-100">{detail.completionTime}</Td>
                                         </tr>
                                     ))}
+                                    {paginatedDetails.length === 0 && (
+                                        <tr>
+                                            <Td colSpan={13} className="text-center text-gray-400 py-8">暂无详情数据</Td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
                         <div className="p-2 border-t border-blue-500/30 bg-[#0c2242] flex items-center justify-between px-4">
                             <div className="flex items-center gap-4 flex-1">
-                                <StyledButton variant="toolbar" onClick={handleDetailExport} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
+                                <StyledButton variant="toolbar" onClick={() => alert('导出详情')} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
                                 <Pagination 
-                                    currentPage={detailCurrentPage}
-                                    pageSize={detailPageSize}
-                                    totalItems={MOCK_DETAILS.length}
-                                    onPageChange={setDetailCurrentPage}
-                                    onPageSizeChange={(s) => { setDetailPageSize(s); setDetailCurrentPage(1); }}
-                                    className="py-0 w-full"
+                                    currentPage={detailPagination.currentPage} 
+                                    pageSize={detailPagination.pageSize} 
+                                    totalItems={(MOCK_CV_INSTALL_DETAILS[selectedRecord.id] || []).length} 
+                                    onPageChange={(page) => setDetailPagination({ ...detailPagination, currentPage: page })} 
+                                    onPageSizeChange={(s) => setDetailPagination({ currentPage: 1, pageSize: s })} 
+                                    className="py-0 w-full" 
                                 />
                             </div>
-                            <StyledButton onClick={() => setIsDetailModalOpen(false)} className="ml-4">关闭</StyledButton>
+                            <StyledButton onClick={() => setSelectedRecord(null)} className="ml-4">关闭</StyledButton>
                         </div>
                     </div>
                 </div>
@@ -410,205 +375,240 @@ const InstallRemoveDataView: React.FC = () => {
     );
 };
 
-// Sub-component for Maintenance Data Management
-const MaintenanceDataView: React.FC = () => {
-    const [filters, setFilters] = useState({
-        month: '2026-03',
-        city: '',
-        cat1: '千里眼',
-        cat2: '',
-        cat3: ''
-    });
-
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [detailCurrentPage, setDetailCurrentPage] = useState(1);
-    const [detailPageSize, setDetailPageSize] = useState(10);
+const CloudVideoMaintenanceDataView: React.FC = () => {
+    const [filters, setFilters] = useState({ month: '2024-03', city: '', cat1: '', cat2: '' });
+    const [pagination, setPagination] = useState({ currentPage: 1, pageSize: 10 });
+    const [selectedRecord, setSelectedRecord] = useState<CloudVideoMaintenanceRecord | null>(null);
+    const [detailPagination, setDetailPagination] = useState({ currentPage: 1, pageSize: 10 });
 
     const filteredData = useMemo(() => {
-        return MOCK_MAINTENANCE_LIST.filter(item => {
+        return MOCK_CV_MAINTENANCE_DATA.filter(item => {
+            if (filters.month && item.month !== filters.month) return false;
             if (filters.city && item.city !== filters.city) return false;
             if (filters.cat1 && item.cat1 !== filters.cat1) return false;
-            if (filters.cat2 && item.cat2 !== filters.cat2) return false;
-            if (filters.cat3 && item.cat3 !== filters.cat3) return false;
+            if (filters.cat2 && !item.cat2.includes(filters.cat2)) return false;
             return true;
         });
     }, [filters]);
 
+    const totalCost = useMemo(() => {
+        return filteredData.reduce((sum, item) => sum + item.totalCost, 0);
+    }, [filteredData]);
+
     const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * pageSize;
-        return filteredData.slice(start, start + pageSize);
-    }, [filteredData, currentPage, pageSize]);
+        const start = (pagination.currentPage - 1) * pagination.pageSize;
+        return filteredData.slice(start, start + pagination.pageSize);
+    }, [filteredData, pagination]);
 
     const paginatedDetails = useMemo(() => {
-        const start = (detailCurrentPage - 1) * detailPageSize;
-        return MOCK_MAINTENANCE_DETAILS.slice(start, start + detailPageSize);
-    }, [detailCurrentPage, detailPageSize]);
+        if (!selectedRecord) return [];
+        const details = MOCK_CV_MAINTENANCE_DETAILS[selectedRecord.id] || [];
+        const start = (detailPagination.currentPage - 1) * detailPagination.pageSize;
+        return details.slice(start, start + detailPagination.pageSize);
+    }, [selectedRecord, detailPagination]);
 
-    const handleDrillDown = (record: MaintenanceRecord) => {
+    const handleDrillDown = (record: CloudVideoMaintenanceRecord) => {
         setSelectedRecord(record);
-        setDetailCurrentPage(1);
-        setIsDetailModalOpen(true);
+        setDetailPagination({ currentPage: 1, pageSize: 10 });
     };
 
-    const handleExport = () => alert('正在导出维护数据...');
-    const handleDetailExport = () => alert('正在导出维护详情...');
+    const handleExport = () => {
+        const headers = ['月份', '地市', '一级分类', '二级分类', '维护量（路）', '单价（元）', '维护费用（元）'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredData.map(item => [
+                item.month,
+                item.city,
+                item.cat1,
+                item.cat2,
+                item.volume,
+                item.unitPrice.toFixed(2),
+                item.totalCost
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `云视讯维护量数据_${new Date().getTime()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     return (
-        <div className="relative flex flex-col h-full bg-transparent p-4 gap-4 overflow-hidden">
-            {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-4 bg-[#0c2242]/50 p-4 border border-blue-500/20 rounded-sm">
+        <div className="relative flex flex-col h-full p-4 animate-[fadeIn_0.3s_ease-out]">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-4 mb-4 bg-[#0c2242]/50 p-4 border border-blue-500/20 rounded-sm">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">月份:</span>
-                    <StyledInput type="month" className="w-40" value={filters.month} onChange={(e) => setFilters({ ...filters, month: e.target.value })} />
+                    <span className="text-xs text-blue-300 whitespace-nowrap">月份:</span>
+                    <StyledInput type="month" value={filters.month} onChange={e => setFilters({ ...filters, month: e.target.value })} className="w-32" />
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">地市:</span>
-                    <StyledSelect className="w-32" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })}>
+                    <span className="text-xs text-blue-300 whitespace-nowrap">地市:</span>
+                    <StyledSelect value={filters.city} onChange={e => setFilters({ ...filters, city: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        {INNER_MONGOLIA_CITIES.map(city => (
-                            <option key={city.code} value={city.name}>{city.name}</option>
-                        ))}
+                        {INNER_MONGOLIA_CITIES.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
                     </StyledSelect>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">一级分类:</span>
-                    <StyledSelect 
-                        className="w-32"
-                        value={filters.cat1}
-                        onChange={(e) => setFilters({ ...filters, cat1: e.target.value })}
-                    >
-                        <option value="千里眼">千里眼</option>
-                    </StyledSelect>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">二级分类:</span>
-                    <StyledSelect 
-                        className="w-40"
-                        value={filters.cat2}
-                        onChange={(e) => setFilters({ ...filters, cat2: e.target.value })}
-                    >
+                    <span className="text-xs text-blue-300 whitespace-nowrap">一级分类:</span>
+                    <StyledSelect value={filters.cat1} onChange={e => setFilters({ ...filters, cat1: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        <option value="室内无线WIFI">室内无线WIFI</option>
-                        <option value="室内外有线">室内外有线</option>
+                        <option value="云视讯">云视讯</option>
                     </StyledSelect>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300">三级分类:</span>
-                    <StyledSelect 
-                        className="w-32"
-                        value={filters.cat3}
-                        onChange={(e) => setFilters({ ...filters, cat3: e.target.value })}
-                    >
+                    <span className="text-xs text-blue-300 whitespace-nowrap">二级分类:</span>
+                    <StyledSelect value={filters.cat2} onChange={e => setFilters({ ...filters, cat2: e.target.value })} className="w-32">
                         <option value="">全部</option>
-                        <option value="标准版">标准版</option>
-                        <option value="专业版">专业版</option>
-                        <option value="企业版">企业版</option>
+                        <option value="云视讯硬件">云视讯硬件</option>
+                        <option value="云视讯软件">云视讯软件</option>
                     </StyledSelect>
                 </div>
-                <StyledButton variant="toolbar" icon={<SearchIcon />}>查询</StyledButton>
-                <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ month: '2026-03', city: '', cat1: '千里眼', cat2: '', cat3: '' })}>重置</StyledButton>
+                <StyledButton onClick={() => setPagination({ ...pagination, currentPage: 1 })} icon={<SearchIcon />} variant="toolbar">查询</StyledButton>
+                {(filters.month !== '2024-03' || filters.city || filters.cat1 || filters.cat2) && (
+                    <StyledButton onClick={() => setFilters({ month: '2024-03', city: '', cat1: '', cat2: '' })} variant="secondary" icon={<RefreshCwIcon />}>重置</StyledButton>
+                )}
             </div>
 
-            {/* Summary Card */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Summary Metric */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-gradient-to-r from-blue-600/20 to-blue-900/20 border border-blue-500/30 p-4 rounded-sm flex flex-col justify-center">
                     <span className="text-xs text-blue-300 mb-1">月份</span>
-                    <span className="text-xl font-bold text-white">{filters.month}</span>
+                    <span className="text-xl font-bold text-white">{filters.month || '2024-03'}</span>
                 </div>
                 <div className="bg-gradient-to-r from-blue-600/20 to-blue-900/20 border border-blue-500/30 p-4 rounded-sm flex flex-col justify-center">
-                    <span className="text-xs text-blue-300 mb-1">本月全省千里眼总维护费用（元）</span>
-                    <span className="text-2xl font-bold text-neon-blue">¥ {filteredData.reduce((sum, r) => sum + r.totalCost, 0).toLocaleString()}</span>
+                    <span className="text-xs text-blue-300 mb-1">本月全省云视讯总维护费用（元）</span>
+                    <span className="text-2xl font-bold text-neon-blue">¥ {totalCost.toLocaleString()}</span>
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="flex-1 overflow-hidden flex flex-col bg-[#0c2242]/30 border border-blue-500/20 rounded-sm">
-                <div className="overflow-auto flex-1 scrollbar-thin">
+            <div className="flex-1 overflow-hidden flex flex-col border border-blue-500/30 bg-[#0A2744]/50 relative">
+                <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-[#1e3a5f] z-10">
+                        <thead className="sticky top-0 z-10 bg-[#124979]/90 backdrop-blur-sm shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
                             <tr>
-                                <Th className="text-blue-100">地市</Th>
-                                <Th className="text-blue-100">一级分类</Th>
-                                <Th className="text-blue-100">二级分类</Th>
-                                <Th className="text-blue-100">三级分类</Th>
-                                <Th className="text-blue-100 text-right">维护规模（路）</Th>
-                                <Th className="text-blue-100 text-right">维护单价（元/端·月）</Th>
-                                <Th className="text-blue-100 text-right">维护费用（元）</Th>
-                                <Th className="text-blue-100 text-center">操作</Th>
+                                <Th className="text-blue-200">地市</Th>
+                                <Th className="text-blue-200">一级分类</Th>
+                                <Th className="text-blue-200">二级分类</Th>
+                                <Th className="text-blue-200 text-right">维护量（路）</Th>
+                                <Th className="text-blue-200 text-right">单价（元）</Th>
+                                <Th className="text-blue-200 text-right">维护费用（元）</Th>
+                                <Th className="text-blue-200 text-center">操作</Th>
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedData.map((record) => (
-                                <tr key={record.id} className="hover:bg-blue-500/10 transition-colors border-b border-blue-500/10">
-                                    <Td className="text-white">{record.city}</Td>
-                                    <Td className="text-white">{record.cat1}</Td>
-                                    <Td className="text-white">{record.cat2}</Td>
-                                    <Td className="text-white">{record.cat3}</Td>
-                                    <Td className="text-white font-mono text-right">{record.volume}</Td>
-                                    <Td className="text-white font-mono text-right">{record.unitPrice}</Td>
-                                    <Td className="text-neon-blue font-bold font-mono text-right">{record.totalCost.toLocaleString()}</Td>
+                            {paginatedData.length > 0 ? paginatedData.map((item, index) => (
+                                <tr key={item.id} className={`hover:bg-blue-500/10 transition-colors ${index % 2 === 0 ? 'bg-transparent' : 'bg-[#0A3458]/20'}`}>
+                                    <Td className="text-blue-100">{item.city}</Td>
+                                    <Td className="text-blue-100">{item.cat1}</Td>
+                                    <Td className="text-blue-100">{item.cat2}</Td>
+                                    <Td className="text-blue-100 text-right font-mono">{item.volume}</Td>
+                                    <Td className="text-blue-100 text-right font-mono">{item.unitPrice.toFixed(2)}</Td>
+                                    <Td className="text-neon-blue text-right font-mono font-bold">{item.totalCost.toLocaleString()}</Td>
                                     <Td className="text-center">
-                                        <button onClick={() => handleDrillDown(record)} className="text-neon-blue hover:text-blue-300 transition-colors flex items-center justify-center gap-1 mx-auto">
-                                            <ZoomInIcon className="w-3 h-3" /> 下钻详情
+                                        <button 
+                                            className="text-blue-400 hover:text-neon-blue underline text-xs"
+                                            onClick={() => handleDrillDown(item)}
+                                        >
+                                            下钻详情
                                         </button>
                                     </Td>
                                 </tr>
-                            ))}
+                            )) : (
+                                <tr>
+                                    <Td colSpan={7} className="text-center text-gray-400 py-8">暂无数据</Td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
                 <div className="bg-[#1e293b]/50 h-[40px] shrink-0 border-t border-blue-500/20 flex items-center px-4 gap-4">
                     <StyledButton variant="toolbar" onClick={handleExport} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
                     <div className="flex-1 flex items-center text-[10px] text-blue-300/70 italic px-2">
-                        * 维护量为截止统计月千里眼终端存量数
+                        * 维护量为截止统计月云视讯终端存量数
                     </div>
-                    <Pagination currentPage={currentPage} pageSize={pageSize} totalItems={filteredData.length} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} className="py-0 w-auto" />
+                    <Pagination 
+                        currentPage={pagination.currentPage} 
+                        totalItems={filteredData.length} 
+                        pageSize={pagination.pageSize} 
+                        onPageChange={(page) => setPagination({ ...pagination, currentPage: page })} 
+                        onPageSizeChange={(s) => setPagination({ currentPage: 1, pageSize: s })}
+                        className="py-0 w-auto"
+                    />
                 </div>
             </div>
 
             {/* Drill-down Modal */}
-            {isDetailModalOpen && (
+            {selectedRecord && (
                 <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-[#0b1730] border border-blue-500/40 w-full max-w-6xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(0,210,255,0.3)]">
                         <div className="flex justify-between items-center p-4 border-b border-blue-500/30 bg-[#0c2242]">
-                            <h3 className="text-lg font-bold text-white">维护数据详情 - {selectedRecord?.city}</h3>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <TrendingUpIcon className="w-5 h-5 text-neon-blue" />
+                                维护量详情 - {selectedRecord.city} ({selectedRecord.month})
+                            </h3>
+                            <button onClick={() => setSelectedRecord(null)} className="text-gray-400 hover:text-white transition-colors">
+                                <XIcon className="w-6 h-6" />
+                            </button>
                         </div>
+                        
                         <div className="flex-1 overflow-auto p-4 scrollbar-thin">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="sticky top-0 bg-[#1e3a5f] z-10">
+                            <table className="w-full text-left border-collapse min-w-[1000px]">
+                                <thead className="sticky top-0 z-10 bg-[#1e3a5f]">
                                     <tr>
-                                        {['产品实例标识', '客户名称', '客户编号', '一级分类', '二级分类', '三级分类', '终端型号', '设备序列号', 'MAC地址', '地市', '安装地址'].map(h => <th key={h} className="p-2 text-[10px] font-semibold text-blue-100 border-b border-blue-500/30 whitespace-nowrap">{h}</th>)}
+                                        <Th className="text-blue-200">产品实例标识</Th>
+                                        <Th className="text-blue-200">客户名称</Th>
+                                        <Th className="text-blue-200">客户编号</Th>
+                                        <Th className="text-blue-200">一级分类</Th>
+                                        <Th className="text-blue-200">二级分类</Th>
+                                        <Th className="text-blue-200">终端型号</Th>
+                                        <Th className="text-blue-200">设备序列号</Th>
+                                        <Th className="text-blue-200">MAC地址</Th>
+                                        <Th className="text-blue-200">地市</Th>
+                                        <Th className="text-blue-200">安装地址</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedDetails.map((detail) => (
-                                        <tr key={detail.id} className="hover:bg-blue-500/10 border-b border-blue-500/10">
-                                            <td className="p-2 text-[10px] text-blue-300 font-mono whitespace-nowrap">{detail.productInstanceId}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.customerName}</td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.customerCode}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat1}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat2}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.cat3}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.terminalModel}</td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.deviceSn}</td>
-                                            <td className="p-2 text-[10px] text-gray-400 font-mono whitespace-nowrap">{detail.macAddress}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.city}</td>
-                                            <td className="p-2 text-[10px] text-white whitespace-nowrap">{detail.address}</td>
+                                    {paginatedDetails.map((detail, idx) => (
+                                        <tr key={detail.id} className={`hover:bg-blue-500/10 transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-[#0A3458]/20'}`}>
+                                            <Td className="text-blue-100">{detail.productInstanceId}</Td>
+                                            <Td className="text-blue-100 truncate max-w-[150px]" title={detail.customerName}>{detail.customerName}</Td>
+                                            <Td className="text-blue-100">{detail.customerCode}</Td>
+                                            <Td className="text-blue-100">{detail.cat1}</Td>
+                                            <Td className="text-blue-100">{detail.cat2}</Td>
+                                            <Td className="text-blue-100">{detail.terminalModel}</Td>
+                                            <Td className="text-blue-100">{detail.deviceSn}</Td>
+                                            <Td className="text-blue-100 font-mono">{detail.macAddress}</Td>
+                                            <Td className="text-blue-100">{detail.city}</Td>
+                                            <Td className="text-blue-100 truncate max-w-[150px]" title={detail.address}>{detail.address}</Td>
                                         </tr>
                                     ))}
+                                    {paginatedDetails.length === 0 && (
+                                        <tr>
+                                            <Td colSpan={10} className="text-center text-gray-400 py-8">暂无详情数据</Td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
                         <div className="p-2 border-t border-blue-500/30 bg-[#0c2242] flex items-center justify-between px-4">
                             <div className="flex items-center gap-4 flex-1">
-                                <StyledButton variant="toolbar" onClick={handleDetailExport} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
-                                <Pagination currentPage={detailCurrentPage} pageSize={detailPageSize} totalItems={MOCK_MAINTENANCE_DETAILS.length} onPageChange={setDetailCurrentPage} onPageSizeChange={(s) => { setDetailPageSize(s); setDetailCurrentPage(1); }} className="py-0 w-full" />
+                                <StyledButton variant="toolbar" onClick={() => alert('导出详情')} icon={<DownloadIcon />} className="whitespace-nowrap h-8">导出</StyledButton>
+                                <Pagination 
+                                    currentPage={detailPagination.currentPage} 
+                                    pageSize={detailPagination.pageSize} 
+                                    totalItems={(MOCK_CV_MAINTENANCE_DETAILS[selectedRecord.id] || []).length} 
+                                    onPageChange={(page) => setDetailPagination({ ...detailPagination, currentPage: page })} 
+                                    onPageSizeChange={(s) => setDetailPagination({ currentPage: 1, pageSize: s })} 
+                                    className="py-0 w-full" 
+                                />
                             </div>
-                            <StyledButton onClick={() => setIsDetailModalOpen(false)} className="ml-4">关闭</StyledButton>
+                            <StyledButton onClick={() => setSelectedRecord(null)} className="ml-4">关闭</StyledButton>
                         </div>
                     </div>
                 </div>
@@ -617,56 +617,20 @@ const MaintenanceDataView: React.FC = () => {
     );
 };
 
-const PlaceholderView: React.FC<{ title: string }> = ({ title }) => (
-    <div className="flex flex-col items-center justify-center h-full text-blue-300/50">
-        <div className="text-6xl mb-4">📊</div>
-        <div className="text-xl font-bold">{title}</div>
-        <div className="mt-2 text-sm">功能开发中，敬请期待...</div>
-    </div>
-);
-
-interface FaultTicketDetailRecord {
-    id: string;
-    ticketNo: string;
-    subject: string;
-    channel: string;
-    faultReason: string;
-    customerCode: string;
-    customerName: string;
-    productInstanceId: string;
-    city: string;
-    currentStep: string;
-    handler: string;
-    status: string;
-    reportTime: string;
-    archiveTime: string;
-    duration: string;
-    month: string;
-}
-
-const MOCK_FAULT_TICKET_DETAILS: FaultTicketDetailRecord[] = [
-    { id: 'ft1', ticketNo: 'FT20260301001', subject: '视频画面卡顿', channel: '400热线', faultReason: '接入网络原因', customerCode: 'CUST001', customerName: '呼和浩特市家家悦超市', productInstanceId: 'QLY-HHHT-001', city: '呼和浩特市', currentStep: '故障排查', handler: '张三', status: '处理中', reportTime: '2026-03-01 10:00:00', archiveTime: '', duration: '2小时', month: '2026-03' },
-    { id: 'ft2', ticketNo: 'FT20260302005', subject: '摄像头离线', channel: '10086热线', faultReason: '千里眼硬件原因', customerCode: 'CUST045', customerName: '包头钢铁（集团）有限责任公司', productInstanceId: 'QLY-BT-056', city: '包头市', currentStep: '已归档', handler: '李四', status: '已解决', reportTime: '2026-03-02 14:00:00', archiveTime: '2026-03-03 10:00:00', duration: '20小时', month: '2026-03' },
-    { id: 'ft3', ticketNo: 'FT20260303012', subject: 'APP无法登录', channel: '移动千里眼APP', faultReason: '客户侧原因', customerCode: 'CUST088', customerName: '鄂尔多斯市某煤矿', productInstanceId: 'QLY-EEDS-102', city: '鄂尔多斯市', currentStep: '已归档', handler: '王五', status: '已解决', reportTime: '2026-03-03 09:30:00', archiveTime: '2026-03-03 11:30:00', duration: '2小时', month: '2026-03' },
-    { id: 'ft4', ticketNo: 'FT20260304008', subject: '云存储回放失败', channel: '其他报障渠道', faultReason: '其他原因', customerCode: 'CUST120', customerName: '赤峰市某学校', productInstanceId: 'QLY-CF-033', city: '赤峰市', currentStep: '厂商处理', handler: '赵六', status: '处理中', reportTime: '2026-03-04 16:20:00', archiveTime: '', duration: '24小时', month: '2026-03' },
-    { id: 'ft5', ticketNo: 'FT20260305015', subject: '设备频繁掉线', channel: '400热线', faultReason: '千里眼硬件原因', customerCode: 'CUST001', customerName: '呼和浩特市家家悦超市', productInstanceId: 'QLY-HHHT-002', city: '呼和浩特市', currentStep: '上门维修', handler: '张三', status: '处理中', reportTime: '2026-03-05 11:00:00', archiveTime: '', duration: '5小时', month: '2026-03' },
-    { id: 'ft6', ticketNo: 'FT20260306022', subject: '画面模糊', channel: '10086热线', faultReason: '客户侧原因', customerCode: 'CUST045', customerName: '包头钢铁（集团）有限责任公司', productInstanceId: 'QLY-BT-057', city: '包头市', currentStep: '已归档', handler: '李四', status: '已解决', reportTime: '2026-03-06 13:15:00', archiveTime: '2026-03-06 15:15:00', duration: '2小时', month: '2026-03' },
-];
-
-const FaultTicketDataView: React.FC = () => {
-    const [filters, setFilters] = useState({ month: '2026-03', city: '', channel: '', faultReason: '' });
+const CloudVideoFaultTicketDataView: React.FC = () => {
+    const [filters, setFilters] = useState({ month: '2024-03', city: '', channel: '', faultReason: '' });
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedCity, setSelectedCity] = useState<string>('');
-    const [selectedChannel, setSelectedChannel] = useState<string>(''); // '' means all channels
+    const [selectedChannel, setSelectedChannel] = useState<string>(''); 
     
     const [detailCurrentPage, setDetailCurrentPage] = useState(1);
     const [detailPageSize, setDetailPageSize] = useState(10);
 
     const aggregatedData = useMemo(() => {
-        const filteredDetails = MOCK_FAULT_TICKET_DETAILS.filter(d => {
+        const filteredDetails = MOCK_CV_FAULT_TICKET_DETAILS.filter(d => {
             if (filters.month && d.month !== filters.month) return false;
             if (filters.city && d.city !== filters.city) return false;
             if (filters.channel && d.channel !== filters.channel) return false;
@@ -678,13 +642,13 @@ const FaultTicketDataView: React.FC = () => {
         filteredDetails.forEach(d => {
             const key = `${d.city}-${d.month}`;
             if (!cityMap.has(key)) {
-                cityMap.set(key, { id: key, city: d.city, month: d.month, total: 0, hotline400: 0, hotline10086: 0, app: 0, other: 0 });
+                cityMap.set(key, { id: key, city: d.city, month: d.month, total: 0, hotline400: 0, hotline10086: 0, platform: 0, other: 0 });
             }
             const record = cityMap.get(key);
             record.total += 1;
             if (d.channel === '400热线') record.hotline400 += 1;
             else if (d.channel === '10086热线') record.hotline10086 += 1;
-            else if (d.channel === '移动千里眼APP') record.app += 1;
+            else if (d.channel === '政企综调平台') record.platform += 1;
             else record.other += 1;
         });
 
@@ -697,7 +661,7 @@ const FaultTicketDataView: React.FC = () => {
     }, [aggregatedData, currentPage, pageSize]);
 
     const handleExport = () => {
-        alert('导出报障工单数据');
+        alert('导出云视讯报障工单数据');
     };
 
     const handleOpenDetail = (city: string, channel: string) => {
@@ -708,7 +672,7 @@ const FaultTicketDataView: React.FC = () => {
     };
 
     const modalFilteredDetails = useMemo(() => {
-        return MOCK_FAULT_TICKET_DETAILS.filter(d => {
+        return MOCK_CV_FAULT_TICKET_DETAILS.filter(d => {
             if (filters.month && d.month !== filters.month) return false;
             if (selectedCity && d.city !== selectedCity) return false;
             if (selectedChannel && d.channel !== selectedChannel) return false;
@@ -734,25 +698,25 @@ const FaultTicketDataView: React.FC = () => {
     const mainViewChannelBreakdown = useMemo(() => {
         let hotline400 = 0;
         let hotline10086 = 0;
-        let app = 0;
+        let platform = 0;
         let other = 0;
         aggregatedData.forEach(d => {
             hotline400 += d.hotline400;
             hotline10086 += d.hotline10086;
-            app += d.app;
+            platform += d.platform;
             other += d.other;
         });
         return [
             { name: '400热线', value: hotline400 },
             { name: '10086热线', value: hotline10086 },
-            { name: '移动千里眼APP', value: app },
+            { name: '政企综调平台', value: platform },
             { name: '其他', value: other },
         ].filter(item => item.value > 0);
     }, [aggregatedData]);
 
     const mainViewFaultReasonBreakdown = useMemo(() => {
         const breakdown = new Map<string, number>();
-        const filteredDetails = MOCK_FAULT_TICKET_DETAILS.filter(d => {
+        const filteredDetails = MOCK_CV_FAULT_TICKET_DETAILS.filter(d => {
             if (filters.month && d.month !== filters.month) return false;
             if (filters.city && d.city !== filters.city) return false;
             if (filters.channel && d.channel !== filters.channel) return false;
@@ -769,12 +733,12 @@ const FaultTicketDataView: React.FC = () => {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
     return (
-        <div className="relative flex flex-col h-full bg-transparent p-4 overflow-hidden">
+        <div className="h-full flex flex-col relative p-4 animate-[fadeIn_0.3s_ease-out]">
             {/* Filter Bar */}
             <div className="flex flex-wrap items-center gap-4 bg-[#0c2242]/50 p-4 border border-blue-500/20 rounded-sm">
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-blue-300 whitespace-nowrap">月份:</span>
-                    <StyledInput type="month" className="w-40" value={filters.month} onChange={(e) => setFilters({ ...filters, month: e.target.value })} />
+                    <StyledInput type="month" className="w-32" value={filters.month} onChange={(e) => setFilters({ ...filters, month: e.target.value })} />
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-blue-300 whitespace-nowrap">地市:</span>
@@ -791,7 +755,7 @@ const FaultTicketDataView: React.FC = () => {
                         <option value="">全部</option>
                         <option value="400热线">400热线</option>
                         <option value="10086热线">10086热线</option>
-                        <option value="移动千里眼APP">移动千里眼APP</option>
+                        <option value="政企综调平台">政企综调平台</option>
                         <option value="其他报障渠道">其他报障渠道</option>
                     </StyledSelect>
                 </div>
@@ -800,13 +764,15 @@ const FaultTicketDataView: React.FC = () => {
                     <StyledSelect className="w-40" value={filters.faultReason} onChange={(e) => setFilters({ ...filters, faultReason: e.target.value })}>
                         <option value="">全部</option>
                         <option value="客户侧原因">客户侧原因</option>
-                        <option value="千里眼硬件原因">千里眼硬件原因</option>
+                        <option value="云视讯硬件原因">云视讯硬件原因</option>
                         <option value="接入网络原因">接入网络原因</option>
                         <option value="其他原因">其他原因</option>
                     </StyledSelect>
                 </div>
                 <StyledButton variant="toolbar" icon={<SearchIcon />} onClick={() => setCurrentPage(1)}>查询</StyledButton>
-                <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ month: '2026-03', city: '', channel: '', faultReason: '' })}>重置</StyledButton>
+                {(filters.month !== '2024-03' || filters.city || filters.channel || filters.faultReason) && (
+                    <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ month: '2024-03', city: '', channel: '', faultReason: '' })}>重置</StyledButton>
+                )}
             </div>
 
             {/* Charts Section */}
@@ -872,7 +838,7 @@ const FaultTicketDataView: React.FC = () => {
                                 <Th className="text-blue-200">报障工单总量</Th>
                                 <Th className="text-blue-200">400热线总报障量</Th>
                                 <Th className="text-blue-200">10086热线总报障量</Th>
-                                <Th className="text-blue-200">移动千里眼APP总报障量</Th>
+                                <Th className="text-blue-200">政企综调平台总报障量</Th>
                                 <Th className="text-blue-200">其他报障渠道总报障量</Th>
                             </tr>
                         </thead>
@@ -884,7 +850,7 @@ const FaultTicketDataView: React.FC = () => {
                                     <Td className="text-neon-blue font-bold cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '')}>{row.total}</Td>
                                     <Td className="text-blue-300 cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '400热线')}>{row.hotline400}</Td>
                                     <Td className="text-blue-300 cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '10086热线')}>{row.hotline10086}</Td>
-                                    <Td className="text-blue-300 cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '移动千里眼APP')}>{row.app}</Td>
+                                    <Td className="text-blue-300 cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '政企综调平台')}>{row.platform}</Td>
                                     <Td className="text-blue-300 cursor-pointer hover:underline" onClick={() => handleOpenDetail(row.city, '其他报障渠道')}>{row.other}</Td>
                                 </tr>
                             ))}
@@ -1018,30 +984,29 @@ const FaultTicketDataView: React.FC = () => {
     );
 };
 
-interface CostUnitRecord {
+interface CloudVideoCostUnitRecord {
     id: string;
     city: string;
-    businessType: string;
+    businessType: '装机' | '移机' | '维护';
     cat1: string;
     cat2: string;
-    cat3: string;
     unitPrice: number;
 }
 
-const CostUnitDataView: React.FC = () => {
-    const [records, setRecords] = useState<CostUnitRecord[]>([
-        { id: '1', city: '呼和浩特市', businessType: '装机', cat1: '千里眼', cat2: '室内', cat3: '普通摄像头', unitPrice: 150 },
-        { id: '2', city: '包头市', businessType: '维护', cat1: '千里眼', cat2: '室外', cat3: '球机', unitPrice: 50 },
-        { id: '3', city: '鄂尔多斯市', businessType: '移机', cat1: '千里眼', cat2: '室内无线WIFI', cat3: 'WIFI摄像头', unitPrice: 100 },
-    ]);
-    const [filters, setFilters] = useState({ city: '', businessType: '', cat1: '', cat2: '', cat3: '' });
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+const MOCK_CV_COST_UNIT_DATA: CloudVideoCostUnitRecord[] = [
+    { id: '1', city: '呼和浩特', businessType: '装机', cat1: '云视讯', cat2: '云视讯硬件', unitPrice: 200 },
+    { id: '2', city: '包头', businessType: '维护', cat1: '云视讯', cat2: '云视讯硬件', unitPrice: 15 },
+    { id: '3', city: '鄂尔多斯', businessType: '移机', cat1: '云视讯', cat2: '云视讯软件', unitPrice: 100 },
+];
 
+const CloudVideoCostUnitDataView: React.FC = () => {
+    const [records, setRecords] = useState<CloudVideoCostUnitRecord[]>(MOCK_CV_COST_UNIT_DATA);
+    const [filters, setFilters] = useState({ city: '', businessType: '', cat1: '', cat2: '' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingRecord, setEditingRecord] = useState<CostUnitRecord | null>(null);
-    const [formData, setFormData] = useState<Partial<CostUnitRecord>>({});
-    
+    const [editingRecord, setEditingRecord] = useState<CloudVideoCostUnitRecord | null>(null);
+    const [formData, setFormData] = useState<Partial<CloudVideoCostUnitRecord>>({});
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const filteredRecords = useMemo(() => {
@@ -1049,8 +1014,7 @@ const CostUnitDataView: React.FC = () => {
             if (filters.city && r.city !== filters.city) return false;
             if (filters.businessType && r.businessType !== filters.businessType) return false;
             if (filters.cat1 && r.cat1 !== filters.cat1) return false;
-            if (filters.cat2 && r.cat2 !== filters.cat2) return false;
-            if (filters.cat3 && !r.cat3.includes(filters.cat3)) return false;
+            if (filters.cat2 && !r.cat2.includes(filters.cat2)) return false;
             return true;
         });
     }, [records, filters]);
@@ -1062,13 +1026,13 @@ const CostUnitDataView: React.FC = () => {
 
     const handleAdd = () => {
         setEditingRecord(null);
-        setFormData({ city: '', businessType: '装机', cat1: '千里眼', cat2: '室内', cat3: '', unitPrice: 0 });
+        setFormData({ businessType: '装机', cat1: '云视讯', cat2: '' });
         setIsModalOpen(true);
     };
 
-    const handleEdit = (record: CostUnitRecord) => {
+    const handleEdit = (record: CloudVideoCostUnitRecord) => {
         setEditingRecord(record);
-        setFormData({ ...record });
+        setFormData(record);
         setIsModalOpen(true);
     };
 
@@ -1084,19 +1048,17 @@ const CostUnitDataView: React.FC = () => {
     };
 
     const handleSave = () => {
-        if (!formData.city || !formData.businessType || !formData.cat1 || !formData.cat2 || !formData.cat3 || formData.unitPrice === undefined) {
-            alert('请填写完整信息');
+        if (!formData.city || !formData.businessType || !formData.cat1 || !formData.cat2 || formData.unitPrice === undefined) {
+            alert('请填写完整信息！');
             return;
         }
 
-        // Check for duplicates
         const isDuplicate = records.some(r => 
             r.id !== editingRecord?.id &&
             r.city === formData.city &&
             r.businessType === formData.businessType &&
             r.cat1 === formData.cat1 &&
-            r.cat2 === formData.cat2 &&
-            r.cat3 === formData.cat3
+            r.cat2 === formData.cat2
         );
 
         if (isDuplicate) {
@@ -1105,9 +1067,9 @@ const CostUnitDataView: React.FC = () => {
         }
 
         if (editingRecord) {
-            setRecords(records.map(r => r.id === editingRecord.id ? { ...r, ...formData } as CostUnitRecord : r));
+            setRecords(records.map(r => r.id === editingRecord.id ? { ...r, ...formData } as CloudVideoCostUnitRecord : r));
         } else {
-            setRecords([...records, { ...formData, id: Date.now().toString() } as CostUnitRecord]);
+            setRecords([...records, { ...formData, id: Date.now().toString() } as CloudVideoCostUnitRecord]);
         }
         setIsModalOpen(false);
     };
@@ -1138,25 +1100,15 @@ const CostUnitDataView: React.FC = () => {
                     <span className="text-xs text-blue-300 whitespace-nowrap">一级分类:</span>
                     <StyledSelect className="w-32" value={filters.cat1} onChange={(e) => setFilters({ ...filters, cat1: e.target.value })}>
                         <option value="">全部</option>
-                        <option value="千里眼">千里眼</option>
+                        <option value="云视讯">云视讯</option>
                     </StyledSelect>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-blue-300 whitespace-nowrap">二级分类:</span>
-                    <StyledSelect className="w-32" value={filters.cat2} onChange={(e) => setFilters({ ...filters, cat2: e.target.value })}>
-                        <option value="">全部</option>
-                        <option value="室内">室内</option>
-                        <option value="室外">室外</option>
-                        <option value="室内无线WIFI">室内无线WIFI</option>
-                        <option value="室内外有线">室内外有线</option>
-                    </StyledSelect>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-300 whitespace-nowrap">三级分类:</span>
-                    <StyledInput className="w-32" placeholder="模糊搜索" value={filters.cat3} onChange={(e) => setFilters({ ...filters, cat3: e.target.value })} />
+                    <StyledInput className="w-32" placeholder="模糊搜索" value={filters.cat2} onChange={(e) => setFilters({ ...filters, cat2: e.target.value })} />
                 </div>
                 <StyledButton variant="toolbar" icon={<SearchIcon />} onClick={() => setCurrentPage(1)}>查询</StyledButton>
-                <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ city: '', businessType: '', cat1: '', cat2: '', cat3: '' })}>重置</StyledButton>
+                <StyledButton variant="secondary" icon={<RefreshCwIcon />} onClick={() => setFilters({ city: '', businessType: '', cat1: '', cat2: '' })}>重置</StyledButton>
             </div>
 
             {/* Table */}
@@ -1165,7 +1117,7 @@ const CostUnitDataView: React.FC = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 bg-[#1e3a5f] z-10">
                             <tr>
-                                {['地市', '业务类型', '一级分类', '二级分类', '三级分类', '单价 (元)', '操作'].map(h => (
+                                {['地市', '业务类型', '一级分类', '二级分类', '单价 (元)', '操作'].map(h => (
                                     <Th key={h} className="text-blue-100">{h}</Th>
                                 ))}
                             </tr>
@@ -1177,7 +1129,6 @@ const CostUnitDataView: React.FC = () => {
                                     <Td className="text-gray-300">{row.businessType}</Td>
                                     <Td className="text-gray-300">{row.cat1}</Td>
                                     <Td className="text-gray-300">{row.cat2}</Td>
-                                    <Td className="text-gray-300">{row.cat3}</Td>
                                     <Td className="text-neon-blue font-bold">{row.unitPrice}</Td>
                                     <Td>
                                         <div className="flex gap-3">
@@ -1193,7 +1144,7 @@ const CostUnitDataView: React.FC = () => {
                             ))}
                             {paginatedRecords.length === 0 && (
                                 <tr>
-                                    <Td colSpan={7} className="p-8 text-center text-gray-400">暂无数据</Td>
+                                    <Td colSpan={6} className="p-8 text-center text-gray-400">暂无数据</Td>
                                 </tr>
                             )}
                         </tbody>
@@ -1206,7 +1157,7 @@ const CostUnitDataView: React.FC = () => {
                 <div className="flex gap-2">
                     <StyledButton variant="secondary" icon={<UploadIcon />} onClick={() => alert('批量导入')} className="h-8 whitespace-nowrap">导入</StyledButton>
                     <StyledButton variant="secondary" icon={<DownloadIcon />} onClick={() => alert('批量导出')} className="h-8 whitespace-nowrap">导出</StyledButton>
-                    <StyledButton variant="primary" icon={<PlusIcon />} onClick={handleAdd} className="h-8 whitespace-nowrap">新增单价</StyledButton>
+                    <StyledButton variant="primary" icon={<PlusCircleIcon />} onClick={handleAdd} className="h-8 whitespace-nowrap">新增单价</StyledButton>
                 </div>
                 <Pagination currentPage={currentPage} pageSize={pageSize} totalItems={filteredRecords.length} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} className="py-0 w-full" />
             </div>
@@ -1231,7 +1182,7 @@ const CostUnitDataView: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="w-24 text-sm text-blue-200 text-right">业务类型 <span className="text-red-500">*</span></span>
-                                <StyledSelect className="flex-1" value={formData.businessType || ''} onChange={e => setFormData({ ...formData, businessType: e.target.value })}>
+                                <StyledSelect className="flex-1" value={formData.businessType || ''} onChange={e => setFormData({ ...formData, businessType: e.target.value as any })}>
                                     <option value="装机">装机</option>
                                     <option value="移机">移机</option>
                                     <option value="维护">维护</option>
@@ -1240,21 +1191,12 @@ const CostUnitDataView: React.FC = () => {
                             <div className="flex items-center gap-4">
                                 <span className="w-24 text-sm text-blue-200 text-right">一级分类 <span className="text-red-500">*</span></span>
                                 <StyledSelect className="flex-1" value={formData.cat1 || ''} onChange={e => setFormData({ ...formData, cat1: e.target.value })}>
-                                    <option value="千里眼">千里眼</option>
+                                    <option value="云视讯">云视讯</option>
                                 </StyledSelect>
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="w-24 text-sm text-blue-200 text-right">二级分类 <span className="text-red-500">*</span></span>
-                                <StyledSelect className="flex-1" value={formData.cat2 || ''} onChange={e => setFormData({ ...formData, cat2: e.target.value })}>
-                                    <option value="室内">室内</option>
-                                    <option value="室外">室外</option>
-                                    <option value="室内无线WIFI">室内无线WIFI</option>
-                                    <option value="室内外有线">室内外有线</option>
-                                </StyledSelect>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="w-24 text-sm text-blue-200 text-right">三级分类 <span className="text-red-500">*</span></span>
-                                <StyledInput className="flex-1" placeholder="请输入三级分类" value={formData.cat3 || ''} onChange={e => setFormData({ ...formData, cat3: e.target.value })} />
+                                <StyledInput className="flex-1" placeholder="请输入二级分类" value={formData.cat2 || ''} onChange={e => setFormData({ ...formData, cat2: e.target.value })} />
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="w-24 text-sm text-blue-200 text-right">单价 (元) <span className="text-red-500">*</span></span>
@@ -1291,7 +1233,7 @@ const CostUnitDataView: React.FC = () => {
     );
 };
 
-export const BusinessFinanceDataView: React.FC = () => {
+export const CloudVideoFinanceDataView: React.FC = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [tabs, setTabs] = useState<{ id: string, label: string }[]>([
         { id: 'install-remove', label: '装移机数据管理' }
@@ -1325,18 +1267,27 @@ export const BusinessFinanceDataView: React.FC = () => {
         
         const newTabs = tabs.filter(t => t.id !== id);
         setTabs(newTabs);
-        
         if (activeTabId === id) {
             setActiveTabId(newTabs[newTabs.length - 1].id);
         }
     };
+
+    const renderEmptyContent = (title: string) => (
+        <div className="flex-1 flex items-center justify-center text-gray-400 bg-[#0A2744] border-l border-blue-500/30">
+            <div className="text-center">
+                <div className="text-4xl mb-4 opacity-50">🚧</div>
+                <h2 className="text-xl font-bold text-blue-200 mb-2">{title}</h2>
+                <p>具体菜单页面内容待定，参照千里眼业财数据设计</p>
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex flex-1 overflow-hidden h-full">
             {/* Sidebar */}
             <div className={`${isSidebarCollapsed ? 'w-[53px]' : 'w-48'} bg-transparent border border-blue-500/30 mr-2 transition-all duration-500 ease-in-out flex flex-col shadow-[0_0_15px_rgba(0,0,0,0.3)]`}>
                 <div className={`h-[35px] flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between px-3'} border-b border-blue-500/20 bg-transparent shrink-0`}> 
-                    {!isSidebarCollapsed && <span className="text-blue-100 font-bold tracking-wider text-[12px] whitespace-nowrap">千里眼业财数据</span>}
+                    {!isSidebarCollapsed && <span className="text-blue-100 font-bold tracking-wider text-[12px] whitespace-nowrap">云视讯业财数据</span>}
                     <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="text-blue-300 hover:text-white transition-colors flex items-center justify-center"> 
                         <div className="w-5 h-5 flex items-center justify-center">{isSidebarCollapsed ? <SidebarOpenIcon /> : <SidebarCloseIcon />}</div> 
                     </button> 
@@ -1386,7 +1337,7 @@ export const BusinessFinanceDataView: React.FC = () => {
                                     </>
                                 )}
                                 <span className={`relative z-10 text-sm font-medium tracking-wide whitespace-nowrap truncate max-w-[120px] ${isActive ? 'text-white font-bold' : 'text-gray-300'}`}>{tab.label}</span> 
-                                <button onClick={(e) => handleCloseTab(e, tab.id)} className={`relative z-10 ml-2 p-0.5 rounded-full hover:bg-blue-500/20 transition-colors ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-gray-400'}`}> <XIcon /> </button> 
+                                <button onClick={(e) => handleCloseTab(e, tab.id)} className={`relative z-10 ml-2 p-0.5 rounded-full hover:bg-blue-500/20 transition-colors ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-gray-400'}`}> <XIcon className="w-3 h-3" /> </button> 
                             </div> 
                         );
                     })}
@@ -1394,61 +1345,54 @@ export const BusinessFinanceDataView: React.FC = () => {
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-hidden relative">
-                    {tabs.map((tab) => (
-                        <div key={tab.id} className={`h-full ${activeTabId === tab.id ? 'block' : 'hidden'}`}>
-                            {tab.id === 'install-remove' ? <InstallRemoveDataView /> : 
-                             tab.id === 'maintenance' ? <MaintenanceDataView /> : 
-                             tab.id === 'fault-ticket' ? <FaultTicketDataView /> : 
-                             tab.id === 'cost-unit' ? <CostUnitDataView /> : 
-                             <PlaceholderView title={tab.label} />}
+                    {tabs.map(tab => (
+                        <div key={tab.id} className={`absolute inset-0 flex flex-col ${activeTabId === tab.id ? 'z-10' : 'z-0 hidden'}`}>
+                            {tab.id === 'install-remove' ? <CloudVideoInstallRemoveView /> : 
+                             tab.id === 'maintenance' ? <CloudVideoMaintenanceDataView /> :
+                             tab.id === 'fault-ticket' ? <CloudVideoFaultTicketDataView /> :
+                             tab.id === 'cost-unit' ? <CloudVideoCostUnitDataView /> :
+                             renderEmptyContent(tab.label)}
                         </div>
                     ))}
                 </div>
-
-                {/* Context Menu */}
-                {contextMenu && (
-                    <div 
-                        className="fixed z-[9999] bg-[#0A3458]/95 border border-blue-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-md py-1 w-32 rounded-sm animate-[fadeIn_0.1s_ease-out]"
-                        style={{ top: contextMenu.y, left: contextMenu.x }}
-                    >
-                        <div 
-                            className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-xs text-blue-100 hover:text-white transition-colors" 
-                            onClick={() => {
-                                handleCloseTab({ stopPropagation: () => {} } as any, contextMenu.tabId);
-                                setContextMenu(null);
-                            }}
-                        >
-                            关闭当前标签
-                        </div>
-                        <div 
-                            className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-xs text-blue-100 hover:text-white transition-colors" 
-                            onClick={() => {
-                                const tabToKeep = tabs.find(t => t.id === contextMenu.tabId);
-                                if (tabToKeep) {
-                                    setTabs([tabToKeep]);
-                                    setActiveTabId(tabToKeep.id);
-                                }
-                                setContextMenu(null);
-                            }}
-                        >
-                            关闭其他标签
-                        </div>
-                        <div 
-                            className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-xs text-blue-100 hover:text-white transition-colors" 
-                            onClick={() => {
-                                if (tabs.length > 0) {
-                                    const firstTab = tabs[0];
-                                    setTabs([firstTab]);
-                                    setActiveTabId(firstTab.id);
-                                }
-                                setContextMenu(null);
-                            }}
-                        >
-                            关闭所有标签
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Context Menu */}
+            {contextMenu && (
+                <div 
+                    className="fixed z-[9999] bg-[#0A3458]/95 border border-blue-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-md py-1 w-32 rounded-sm animate-[fadeIn_0.1s_ease-out]"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                >
+                    <div 
+                        className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-xs text-blue-100 hover:text-white transition-colors" 
+                        onClick={() => {
+                            if (tabs.length > 1) {
+                                const newTabs = tabs.filter(t => t.id !== contextMenu.tabId);
+                                setTabs(newTabs);
+                                if (activeTabId === contextMenu.tabId) {
+                                    setActiveTabId(newTabs[newTabs.length - 1].id);
+                                }
+                            }
+                            setContextMenu(null);
+                        }}
+                    >
+                        关闭当前标签
+                    </div>
+                    <div 
+                        className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-xs text-blue-100 hover:text-white transition-colors" 
+                        onClick={() => {
+                            const tabToKeep = tabs.find(t => t.id === contextMenu.tabId);
+                            if (tabToKeep) {
+                                setTabs([tabToKeep]);
+                                setActiveTabId(tabToKeep.id);
+                            }
+                            setContextMenu(null);
+                        }}
+                    >
+                        关闭其他标签
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

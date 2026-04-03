@@ -25,6 +25,9 @@ import { FaultSMSConfigView } from './components/FaultSMSConfigView';
 import { BusinessCustomerPortraitView } from './components/BusinessCustomerPortraitView';
 import { DeliveryManagerPortraitView } from './components/DeliveryManagerPortraitView';
 import { BusinessFinanceDataView } from './components/BusinessFinanceDataView';
+import { CloudVideoFinanceDataView } from './components/CloudVideoFinanceDataView';
+import { TrafficOverlimitAnalysisView } from './components/TrafficOverlimitAnalysisView';
+import { BusinessOfflineTerminalView } from './components/BusinessOfflineTerminalView';
 
 const Th = ({ children, className = "", ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
   <th className={`p-3 font-semibold border-b border-blue-500/40 whitespace-nowrap text-xs ${className}`} {...props}>
@@ -49,7 +52,10 @@ const TABS_CONFIG: { id: string; label: string }[] = [
   { id: 'terminal-inventory', label: '终端库存管理' },
   { id: 'business-customer-portrait', label: '商客装维画像' },
   { id: 'delivery-manager-portrait', label: '交付经理画像' },
-  { id: 'business-finance-data', label: '业财数据管理' },
+  { id: 'business-finance-data', label: '千里眼业财数据' },
+  { id: 'cloud-video-finance-data', label: '云视讯业财数据' },
+  { id: 'traffic-overlimit-analysis', label: '业务流量超限分析' },
+  { id: 'offline-terminal-analysis', label: '业务离线终端分析' },
 ];
 
 const MENU_ITEMS = [
@@ -248,6 +254,7 @@ export const App: React.FC = () => {
   const chatSessionRefs = useRef<Record<string, Chat>>({});
 
   const [dropdownState, setDropdownState] = useState<{ isOpen: boolean, x: number, y: number, menu: string }>({ isOpen: false, x: 0, y: 0, menu: '' });
+  const [subDropdownState, setSubDropdownState] = useState<{ isOpen: boolean, x: number, y: number, menu: string }>({ isOpen: false, x: 0, y: 0, menu: '' });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, tabId: string } | null>(null);
 
   // GroupOrderView State - Lifted Up
@@ -257,6 +264,23 @@ export const App: React.FC = () => {
   const [groupOrderViewTab, setGroupOrderViewTab] = useState<'order' | 'task'>('order');
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearDropdownTimer = () => {
+    if (dropdownTimerRef.current) {
+      clearTimeout(dropdownTimerRef.current);
+      dropdownTimerRef.current = null;
+    }
+  };
+
+  const startDropdownCloseTimer = () => {
+    clearDropdownTimer();
+    dropdownTimerRef.current = setTimeout(() => {
+      setDropdownState(prev => ({ ...prev, isOpen: false }));
+      setSubDropdownState(prev => ({ ...prev, isOpen: false }));
+    }, 200);
+  };
+
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
 
@@ -1413,7 +1437,7 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                 <div ref={menuRef} className="flex-1 flex items-center gap-1 h-full overflow-x-auto no-scrollbar scroll-smooth px-2 min-w-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {MENU_ITEMS.map(item => { 
                         const isActive = activeMenu === item; 
-                        const hasDropdown = item === '综合(新)' || item === '专线(新)' || item === '商客' || item === '千里眼(新)'; 
+                        const hasDropdown = item === '综合(新)' || item === '专线(新)' || item === '商客' || item === '千里眼(新)' || item === '云视讯(新)' || item === '企宽(新)'; 
                         if (hasDropdown) {
                             return (
                                 <div 
@@ -1421,10 +1445,11 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                                     className={`h-full flex items-center px-3 cursor-pointer text-sm font-medium tracking-wide transition-colors duration-300 shrink-0 whitespace-nowrap gap-1 ${isActive ? 'text-neon-blue' : 'text-white hover:text-neon-blue'}`}
                                     onClick={() => setActiveMenu(item)}
                                     onMouseEnter={(e) => {
+                                        clearDropdownTimer();
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         setDropdownState({ isOpen: true, x: rect.left, y: rect.bottom, menu: item });
                                     }}
-                                    onMouseLeave={() => setDropdownState(prev => ({...prev, isOpen: false}))}
+                                    onMouseLeave={startDropdownCloseTimer}
                                 >
                                     {item}
                                     <ChevronDownIcon />
@@ -1432,7 +1457,14 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                             );
                         }
                         return ( 
-                            <div key={item} className={`h-full flex items-center px-3 cursor-pointer text-sm font-medium tracking-wide transition-colors duration-300 shrink-0 whitespace-nowrap ${isActive ? 'text-neon-blue' : 'text-white hover:text-neon-blue'}`} onClick={() => setActiveMenu(item)}>{item}</div> 
+                            <div 
+                                key={item} 
+                                className={`h-full flex items-center px-3 cursor-pointer text-sm font-medium tracking-wide transition-colors duration-300 shrink-0 whitespace-nowrap ${isActive ? 'text-neon-blue' : 'text-white hover:text-neon-blue'}`} 
+                                onClick={() => setActiveMenu(item)}
+                                onMouseEnter={startDropdownCloseTimer}
+                            >
+                                {item}
+                            </div> 
                         ); 
                     })}
                 </div>
@@ -1625,6 +1657,12 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                             <DeliveryManagerPortraitView />
                         ) : tabId === 'business-finance-data' ? (
                             <BusinessFinanceDataView />
+                        ) : tabId === 'cloud-video-finance-data' ? (
+                            <CloudVideoFinanceDataView />
+                        ) : tabId === 'traffic-overlimit-analysis' ? (
+                            <TrafficOverlimitAnalysisView />
+                        ) : tabId === 'offline-terminal-analysis' ? (
+                            <BusinessOfflineTerminalView />
                         ) : tabId === 'complaint' ? (
                             <div className="flex flex-1 overflow-hidden h-full">
                                 <div className={`${complaintSidebarCollapsed ? 'w-[53px]' : 'w-48'} bg-transparent border border-blue-500/30 mr-2 transition-all duration-500 ease-in-out flex flex-col shadow-[0_0_15px_rgba(0,0,0,0.3)]`}>
@@ -1697,32 +1735,36 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                 <div 
                     className="fixed z-[60] bg-[#0A3458]/30 border border-blue-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-md py-2 w-36 rounded-sm animate-[fadeIn_0.1s_ease-out]"
                     style={{ top: dropdownState.y, left: dropdownState.x }}
-                    onMouseEnter={() => setDropdownState(prev => ({...prev, isOpen: true}))}
-                    onMouseLeave={() => setDropdownState(prev => ({...prev, isOpen: false}))}
+                    onMouseEnter={clearDropdownTimer}
+                    onMouseLeave={startDropdownCloseTimer}
                 >
                     {dropdownState.menu === '综合(新)' && (
                         <>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('workbench'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('综合(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 综调-工作台
                             </div>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('complaint'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('综合(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 投诉支撑
                             </div>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('group-order'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('综合(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 团单管理
                             </div>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('terminal-inventory'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('综合(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 终端库存管理
                             </div>
@@ -1733,12 +1775,14 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('business-customer-portrait'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('商客'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 商客装维画像
                             </div>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('delivery-manager-portrait'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('商客'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 交付经理画像
                             </div>
@@ -1749,12 +1793,14 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('important-business'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('专线(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 重要业务管理
                             </div>
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('fault-management'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('专线(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
                                 故障事件管理
                             </div>
@@ -1765,8 +1811,63 @@ You help users query data, analyze alarms, manage tickets, and provide insights.
                             <div 
                                 className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
                                 onClick={() => { handleOpenTab('business-finance-data'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('千里眼(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
                             >
-                                业财数据管理
+                                千里眼业财数据
+                            </div>
+                        </>
+                    )}
+                    {dropdownState.menu === '云视讯(新)' && (
+                        <>
+                            <div 
+                                className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
+                                onClick={() => { handleOpenTab('cloud-video-finance-data'); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('云视讯(新)'); }}
+                                onMouseEnter={() => { clearDropdownTimer(); setSubDropdownState(prev => ({...prev, isOpen: false})); }}
+                            >
+                                云视讯业财数据
+                            </div>
+                        </>
+                    )}
+                    {dropdownState.menu === '企宽(新)' && (
+                        <>
+                            <div 
+                                className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue flex items-center justify-between group" 
+                                onMouseEnter={(e) => {
+                                    clearDropdownTimer();
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setSubDropdownState({ isOpen: true, x: rect.right, y: rect.top, menu: '综合分析' });
+                                }}
+                            >
+                                <span>综合分析</span>
+                                <ChevronRightIcon className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {subDropdownState.isOpen && (
+                <div 
+                    className="fixed z-[70] bg-[#0A3458]/95 border border-blue-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-md py-2 w-48 rounded-sm animate-[fadeIn_0.1s_ease-out]"
+                    style={{ top: subDropdownState.y, left: subDropdownState.x }}
+                    onMouseEnter={clearDropdownTimer}
+                    onMouseLeave={startDropdownCloseTimer}
+                >
+                    {subDropdownState.menu === '综合分析' && (
+                        <>
+                            <div 
+                                className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
+                                onClick={() => { handleOpenTab('traffic-overlimit-analysis'); setSubDropdownState(prev => ({...prev, isOpen: false})); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('企宽(新)'); }}
+                                onMouseEnter={clearDropdownTimer}
+                            >
+                                业务流量超限分析
+                            </div>
+                            <div 
+                                className="px-4 py-2 hover:bg-[#1e3a5f]/80 cursor-pointer text-sm text-blue-100 hover:text-white transition-colors border-l-2 border-transparent hover:border-neon-blue" 
+                                onClick={() => { handleOpenTab('offline-terminal-analysis'); setSubDropdownState(prev => ({...prev, isOpen: false})); setDropdownState(prev => ({...prev, isOpen: false})); setActiveMenu('企宽(新)'); }}
+                                onMouseEnter={clearDropdownTimer}
+                            >
+                                业务离线终端分析
                             </div>
                         </>
                     )}

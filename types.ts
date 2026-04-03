@@ -414,3 +414,61 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: number;
 }
+
+export interface TrafficOverlimitAnalysisRecord {
+  id: string;
+  time: string;                     // 时间
+  city: string;                     // 地市
+  totalBusiness: number;            // 业务总数
+  zeroTrafficCount: number;         // 零流量业务数
+  zeroTrafficRatio: string;         // 零流量业务占比 (%)
+  highBandwidthCount: number;       // 高带宽占用超限业务数
+  highBandwidthRatio: string;       // 高带宽占用超限业务占比 (%)
+}
+
+export interface TrafficOverlimitDetailRecord {
+  id: string;
+  collectionTime: string;           // 采集时间
+  customerName: string;             // 客户名称
+  customerCode: string;             // 客户编号
+  province: string;                 // 省份
+  city: string;                     // 地市
+  broadbandAccount: string;         // 宽带账号
+  terminalType: string;             // 终端类型
+  terminalMac: string;              // 终端MAC
+  terminalSn: string;               // 终端串号
+  orderedBandwidth: string;         // 订购业务带宽
+  upstreamTraffic: string;          // 上行流量
+  downstreamTraffic: string;        // 下行流量
+  upstreamRate: string;             // 上行速率
+  downstreamRate: string;           // 下行速率
+  upstreamUtilization: string;      // 上行带宽利用率
+  downstreamUtilization: string;    // 下行带宽利用率
+  lastOnlineTime: string;           // 最后一次上线时间
+  type: 'zero' | 'high';            // 类型 (零流量/高带宽)
+}
+
+export interface OfflineTerminalAnalysisRecord {
+  id: string;
+  time: string;                     // 时间 (月粒度)
+  city: string;                     // 地市
+  totalBusiness: number;            // 业务总数
+  offlineThreeMonthsCount: number;  // 连续三月终端不在线业务数
+  offlineThreeMonthsRatio: string;  // 连续三月终端不在线业务占比 (%)
+}
+
+export interface OfflineTerminalDetailRecord {
+  id: string;
+  collectionTime: string;           // 采集时间
+  customerName: string;             // 客户名称
+  customerCode: string;             // 客户编号
+  broadbandAccount: string;         // 宽带账号
+  province: string;                 // 省份
+  city: string;                     // 地市
+  terminalType: string;             // 终端类型
+  terminalMac: string;              // 终端MAC
+  terminalSn: string;               // 终端串号
+  orderedBandwidth: string;         // 订购业务带宽
+  onlineTime: string;               // 上线时间
+  offlineTime: string;              // 下线时间
+}

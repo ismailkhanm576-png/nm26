@@ -63,7 +63,7 @@
  * Language: All UI text must be in Simplified Chinese.
  */
 
-import { OtnRecord, SpnRecord, InternetRecord, AlarmRecord, IplRecord, MplsRecord, IgplRecord, RouteCityRecord, RouteRecord, SubscriptionRecord, ComplaintRecord, GroupOrderRecord, ImportantBusinessRecord, TerminalInventoryRecord, FaultRuleRecord, FaultEventRecord, FaultSMSConfigRecord, PortraitIndicator, PersonnelPortrait, DeliveryManagerPortrait } from './types';
+import { OtnRecord, SpnRecord, InternetRecord, AlarmRecord, IplRecord, MplsRecord, IgplRecord, RouteCityRecord, RouteRecord, SubscriptionRecord, ComplaintRecord, GroupOrderRecord, ImportantBusinessRecord, TerminalInventoryRecord, FaultRuleRecord, FaultEventRecord, FaultSMSConfigRecord, PortraitIndicator, PersonnelPortrait, DeliveryManagerPortrait, TrafficOverlimitAnalysisRecord, TrafficOverlimitDetailRecord, OfflineTerminalAnalysisRecord, OfflineTerminalDetailRecord } from './types';
 
 // Helper to format numbers with commas
 const formatNumber = (num: number): string => {
@@ -797,6 +797,95 @@ export const generateComplaintMockData = (count: number): ComplaintRecord[] => {
     return data;
 }
 
+export const generateTrafficOverlimitMockData = (count: number): TrafficOverlimitAnalysisRecord[] => {
+  const data: TrafficOverlimitAnalysisRecord[] = [];
+  const cities = INNER_MONGOLIA_CITIES.map(c => c.name);
+  
+  for (let i = 0; i < count; i++) {
+    const city = cities[i % cities.length];
+    const totalBusiness = Math.floor(Math.random() * 5000 + 1000);
+    const zeroTrafficCount = Math.floor(Math.random() * 200 + 50);
+    const highBandwidthCount = Math.floor(Math.random() * 300 + 100);
+    
+    const zeroTrafficRatio = ((zeroTrafficCount / totalBusiness) * 100).toFixed(2);
+    const highBandwidthRatio = ((highBandwidthCount / totalBusiness) * 100).toFixed(2);
+    
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const time = date.toISOString().split('T')[0];
+
+    data.push({
+      id: `traffic-${i}`,
+      time,
+      city,
+      totalBusiness,
+      zeroTrafficCount,
+      zeroTrafficRatio,
+      highBandwidthCount,
+      highBandwidthRatio
+    });
+  }
+  return data;
+};
+
+export const generateTrafficOverlimitDetailMockData = (count: number, type: 'zero' | 'high'): TrafficOverlimitDetailRecord[] => {
+  const data: TrafficOverlimitDetailRecord[] = [];
+  const cities = INNER_MONGOLIA_CITIES.map(c => c.name);
+  const customers = ["内蒙古伊利实业集团", "内蒙古蒙牛乳业", "内蒙古电力集团", "包头钢铁集团", "内蒙古一机集团"];
+  const terminalTypes = ["ONU", "CPE", "ONT"];
+
+  for (let i = 0; i < count; i++) {
+    const city = cities[Math.floor(Math.random() * cities.length)];
+    const customerName = customers[Math.floor(Math.random() * customers.length)];
+    const bandwidth = [100, 200, 500, 1000][Math.floor(Math.random() * 4)];
+    
+    let upTraffic = "0";
+    let downTraffic = "0";
+    let upRate = "0";
+    let downRate = "0";
+    let upUtil = "0";
+    let downUtil = "0";
+
+    if (type === 'high') {
+      const rate = (bandwidth * (0.8 + Math.random() * 0.15)).toFixed(2); // 80% to 95% utilization
+      upTraffic = (Math.random() * 500 + 100).toFixed(2) + " GB";
+      downTraffic = (Math.random() * 1000 + 500).toFixed(2) + " GB";
+      upRate = (Math.random() * 50 + 10).toFixed(2) + " MB/s";
+      downRate = (parseFloat(rate) / 8).toFixed(2) + " MB/s"; // Approx conversion
+      upUtil = (Math.random() * 40 + 10).toFixed(2) + "%";
+      downUtil = (parseFloat(rate) / bandwidth * 100).toFixed(2) + "%";
+    }
+
+    const date = new Date();
+    const collectionTime = date.toISOString().replace('T', ' ').substring(0, 19);
+    date.setHours(date.getHours() - 2);
+    const lastOnlineTime = date.toISOString().replace('T', ' ').substring(0, 19);
+
+    data.push({
+      id: `detail-${type}-${i}`,
+      collectionTime,
+      customerName,
+      customerCode: `CUST-${Math.floor(Math.random() * 100000).toString().padStart(6, '0')}`,
+      province: "内蒙古自治区",
+      city,
+      broadbandAccount: `KD_IM_${100000 + i}`,
+      terminalType: terminalTypes[Math.floor(Math.random() * terminalTypes.length)],
+      terminalMac: `00:E0:FC:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}`,
+      terminalSn: `SN${Math.floor(Math.random() * 1000000000)}`,
+      orderedBandwidth: bandwidth + "M",
+      upstreamTraffic: upTraffic,
+      downstreamTraffic: downTraffic,
+      upstreamRate: upRate,
+      downstreamRate: downRate,
+      upstreamUtilization: upUtil,
+      downstreamUtilization: downUtil,
+      lastOnlineTime,
+      type
+    });
+  }
+  return data;
+};
+
 // Generate Mock Data for Important Business Management
 export const generateImportantBusinessMockData = (count: number): ImportantBusinessRecord[] => {
     const data: ImportantBusinessRecord[] = [];
@@ -1290,3 +1379,71 @@ export const MOCK_DELIVERY_MANAGER_PORTRAITS: DeliveryManagerPortrait[] = [
     ]
   }
 ];
+
+export const generateOfflineTerminalMockData = (count: number): OfflineTerminalAnalysisRecord[] => {
+  const data: OfflineTerminalAnalysisRecord[] = [];
+  const cities = INNER_MONGOLIA_CITIES.map(c => c.name);
+  
+  for (let i = 0; i < count; i++) {
+    const city = cities[i % cities.length];
+    const totalBusiness = Math.floor(Math.random() * 8000 + 2000);
+    const offlineThreeMonthsCount = Math.floor(Math.random() * 400 + 100);
+    const offlineThreeMonthsRatio = ((offlineThreeMonthsCount / totalBusiness) * 100).toFixed(2);
+    
+    const date = new Date();
+    date.setMonth(date.getMonth() - (i % 12));
+    const time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+    data.push({
+      id: `offline-stat-${i}`,
+      time,
+      city,
+      totalBusiness,
+      offlineThreeMonthsCount,
+      offlineThreeMonthsRatio
+    });
+  }
+  return data;
+};
+
+export const generateOfflineTerminalDetailMockData = (count: number): OfflineTerminalDetailRecord[] => {
+  const data: OfflineTerminalDetailRecord[] = [];
+  const cities = INNER_MONGOLIA_CITIES.map(c => c.name);
+  const customers = ["内蒙古伊利实业集团", "内蒙古蒙牛乳业", "内蒙古电力集团", "包头钢铁集团", "内蒙古一机集团"];
+  const terminalTypes = ["ONU", "CPE", "ONT"];
+
+  for (let i = 0; i < count; i++) {
+    const city = cities[Math.floor(Math.random() * cities.length)];
+    const customerName = customers[Math.floor(Math.random() * customers.length)];
+    const bandwidth = [100, 200, 500, 1000][Math.floor(Math.random() * 4)];
+    
+    const date = new Date();
+    const collectionTime = date.toISOString().replace('T', ' ').substring(0, 19);
+    
+    const offlineDate = new Date();
+    offlineDate.setMonth(offlineDate.getMonth() - 4);
+    offlineDate.setDate(offlineDate.getDate() - Math.floor(Math.random() * 30));
+    const offlineTime = offlineDate.toISOString().replace('T', ' ').substring(0, 19);
+    
+    const onlineDate = new Date(offlineDate);
+    onlineDate.setMonth(onlineDate.getMonth() - 1);
+    const onlineTime = onlineDate.toISOString().replace('T', ' ').substring(0, 19);
+
+    data.push({
+      id: `offline-detail-${i}`,
+      collectionTime,
+      customerName,
+      customerCode: `CUST-${Math.floor(Math.random() * 100000).toString().padStart(6, '0')}`,
+      broadbandAccount: `KD_IM_${200000 + i}`,
+      province: "内蒙古自治区",
+      city,
+      terminalType: terminalTypes[Math.floor(Math.random() * terminalTypes.length)],
+      terminalMac: `00:E0:FC:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}:${Math.floor(Math.random() * 256).toString(16).toUpperCase()}`,
+      terminalSn: `SN${Math.floor(Math.random() * 1000000000)}`,
+      orderedBandwidth: bandwidth + "M",
+      onlineTime,
+      offlineTime
+    });
+  }
+  return data;
+};
